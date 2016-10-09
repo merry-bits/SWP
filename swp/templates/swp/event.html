@@ -1,0 +1,25 @@
+{% extends 'swp/base.html' %}
+
+{% block content %}
+
+<div class="container-fluid">
+  <h1>{{ event.title }}</h1>
+
+  {% if user.is_authenticated %}
+  <form
+    action="{% url 'new_event' event.slug.hex %}" method="POST"
+    enctype="multipart/form-data"
+  >
+    {% csrf_token %}
+    <input
+      type="text" name="caption" value="" placeholder="Caption"
+      required="required"
+    />
+    <input type="file" name="original" required="required" />
+    <button type="submit">Upload</button>
+  </form>
+  {% endif %}
+
+</div>
+
+{% endblock %}

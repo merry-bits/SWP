@@ -7,6 +7,7 @@ from django.contrib.auth.views import logout
 from .views import event
 from .views import home
 from .views import new_event
+from .views import original_file
 from .views import profile
 
 
@@ -20,6 +21,9 @@ urlpatterns = [
     url(r"^event/(?P<slug>[a-f0-9]{32})/$", event, name="event"),
     url(r"^event/(?P<slug>[a-f0-9]{32})/new$", new_event, name="new_event"),
     url(r"^profile/$", profile, name="profile"),
+    url(
+        r"^original_file/(?P<slug>[a-f0-9]{32})/download$", original_file,
+        name="original_file"),
     url(r"^login$", login, name="login", kwargs=_LOGIN_KWARGS),
     url(r"^logout$", logout, name="logout", kwargs={"next_page": "home"}),
     url(r"^admin/", admin.site.urls),

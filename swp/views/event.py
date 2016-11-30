@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from logging import getLogger
-from os import mkdir
+from os import makedirs
 from os.path import exists
 from os.path import split
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import default_storage
 from django.forms import CharField
@@ -18,9 +19,15 @@ from swp.models import CAPTION_MAX_LENGTH
 from swp.models import Event
 from swp.models import Image as ImageModel
 from swp.models import Photo
+from django.shortcuts import redirect
 
 
 _LOG = getLogger(__name__)
+
+
+_ORIGINAL = "original"  # upload form field name
+
+_ENHANCED = "enhanced"  # upload form field name
 
 
 class UploadPhotoForm(Form):
@@ -29,10 +36,32 @@ class UploadPhotoForm(Form):
 
     original = FileField(required=True, max_length=(16 * 1024 * 1024))
 
+    enhanced = FileField(required=False, max_length=(16 * 1024 * 1024))
+
 
 def event(request, slug):
     event = Event.objects.from_slug(slug)
-    return render(request, "swp/event.html", {"event": event})
+    photos = event.photo_set.order_by('created')
+    ctx = {
+        "event": event,
+        "photos": photos,
+    }
+    return render(request, "swp/event.html", ctx)
+
+
+def _save_image_files(file_object, photo, image, extract_meta):
+    with Image(blob=file_object.read()) as original_image:
+        if extract_meta:
+            photo.extract_meta_data(original_image)
+            photo.save()
+        original_image.auto_orient()
+        path = default_storage.path(split(image.path)[0])
+        if not exists(path):
+            makedirs(path)
+        original_image.format = "png"
+        with default_storage.open(image.path, "wb") as image_file:
+            original_image.save(image_file)
+        photo.generate_static_files(original_image)
 
 
 @csrf_protect
@@ -49,22 +78,21 @@ def new_event(request, slug):
     if form.is_valid():
         original = ImageModel.objects.create(
             user=request.user,
-            original_file_name=form.cleaned_data["original"].name)
+            original_file_name=form.cleaned_data[_ORIGINAL].name)
+        enhanced = None
+        if form.cleaned_data[_ENHANCED] is not None:
+            enhanced = ImageModel.objects.create(
+                user=request.user,
+                original_file_name=form.cleaned_data[_ENHANCED].name)
         photo = Photo.objects.create(
-            event=event, original=original,
-            caption=form.cleaned_data["caption"], visible=False)
+            event=event, original=original, enhanced=enhanced,
+            caption=form.cleaned_data["caption"])
         try:
-            with Image(
-                    blob=form.cleaned_data["original"].read()
-                    ) as original_image:
-                photo.extract_meta_data(original_image)
-                photo.save()
-                path = default_storage.path(split(original.path)[0])
-                if not exists(path):
-                    mkdir(path)
-                with default_storage.open(original.path, "wb") as image_file:
-                    original_image.format = "png"
-                    original_image.save(image_file)
+            _save_image_files(
+                form.cleaned_data[_ORIGINAL], photo, original, True)
+            if enhanced is not None:
+                _save_image_files(
+                    form.cleaned_data[_ENHANCED], photo, enhanced, False)
         except Exception:
             _LOG.exception("Creating and storing a photo failed.")
             try:
@@ -73,8 +101,21 @@ def new_event(request, slug):
                 import traceback
                 traceback.print_exc()
             photo.delete()
-            original.delete()
+            messages.error(
+                request,
+                "Sorry, this did not work. The photo was not added. You can "
+                "try again and see if it was just a temporary hickup.")
+        else:
+            messages.success(
+                request,
+                "Your photo was added, you should be able to see it between "
+                "the other photos of the event.")
+    else:
+        messages.warning(
+            request,
+            "There was not enough information to generate a photo.")
+    return redirect("event", slug=event.slug.hex)
 
-        # https://docs.djangoproject.com/en/1.10/topics/http/file-uploads/
-        # MEDIA_ROOT https://docs.djangoproject.com/en/1.10/topics/files/
-        # https://en.wikipedia.org/wiki/Exif
+    # https://docs.djangoproject.com/en/1.10/topics/http/file-uploads/
+    # MEDIA_ROOT https://docs.djangoproject.com/en/1.10/topics/files/
+    # https://en.wikipedia.org/wiki/Exif

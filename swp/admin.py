@@ -19,7 +19,7 @@ class ImageAdmin(ModelAdmin):
 class PhotoAdmin(ModelAdmin):
 
     list_display = (
-        "photo_id", "event_title", "original", "image", "caption", "model",
+        "photo_id", "event_title", "original", "enhanced", "caption", "model",
         "exposure", "f_number", "iso_speed", "focal_length_35")
 
     def event_title(self, obj):

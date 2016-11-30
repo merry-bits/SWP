@@ -100,6 +100,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    "swp.auth.EmailBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.10/topics/i18n/
@@ -120,10 +125,18 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 
-# STATIC_ROOT = "/service/swp/static"
+STATIC_ROOT = BASE_DIR + "/swp/static"
 
 LOGIN_URL = '/login'
 
 LOGIN_REDIRECT_URL = '/'
 
 MEDIA_ROOT = "./images"
+
+THUMBNAIL_WIDTH = 320
+
+THUMBNAIL_HEIGHT = 240
+
+IMAGE_WIDTH = 1024
+
+IMAGE_HEIGHT = 768

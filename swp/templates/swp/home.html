@@ -1,0 +1,13 @@
+{% extends 'swp/base.html' %}
+
+{% block content %}
+  <div class="container-fluid">
+    <h1>Stockholm Wather Photogarphy</h1>
+    
+    {% for event in events %}
+      <div>
+        <a href="{% url 'event' event.slug.hex %}">{{ event.title }}</a>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

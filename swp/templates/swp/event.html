@@ -1,0 +1,146 @@
+{% extends 'swp/base.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="container-fluid">
+  <div class="page-header">
+    <h1>{{ event.title }}</h1>
+  </div>
+
+  {% if user.is_authenticated %}
+  <form
+    action="{% url 'new_event' event.slug.hex %}" method="POST"
+    enctype="multipart/form-data" class="form-inline"
+  >
+    {% csrf_token %}
+    <div class="form-group">
+      <input
+        type="text" name="caption" value="" placeholder="Caption"
+        required="required" class="form-control" autocomplete="off"
+      />
+    </div>
+    <div class="form-group">
+      <label for="new-photo-original">Original</label>
+      <input
+        id="new-photo-original" type="file" name="original"
+        required="required" class="form-control"
+      />
+    </div>
+    <div class="form-group">
+      <label for="new-photo-enhanced">Enhanced (optional)</label>
+      <input
+        id="new-photo-enhanced" type="file" name="enhanced"
+        class="form-control"
+      />
+    </div>
+    <button type="submit" class="btn btn-primary">Upload</button>
+  </form>
+  {% endif %}
+  
+  <div class="row">
+    {% for photo in photos %}
+      <div class="col-xs-12 col-md-4">
+        <a
+          href="#" data-toggle="modal" data-target="#swp-all-images-dialog"
+        ><img
+          src="{% static photo.image.thumbnail_path %}"
+          alt="{{ photo.caption }}" class="swp-thumbnail"
+        /></a>
+        <br/>
+        {% if user.is_authenticated %}
+          {% if photo.enhanced %}
+            <div class="btn-group" role="group">
+              <a
+                href="{% url 'original_file' photo.original.slug.hex %}"
+                role="button" class="btn btn-default btn-sm"
+              >Original</a>
+              <a
+                href="{% url 'original_file' photo.enhanced.slug.hex %}"
+                role="button" class="btn btn-default btn-sm"
+              >Full resolution</a>
+            </div>
+          {% else %}
+            <a
+              href="{% url 'original_file' photo.original.slug.hex %}"
+              role="button" class="btn btn-default btn-sm"
+            >Full resolution</a>
+          {% endif %}
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div
+  class="modal fade" id="swp-all-images-dialog" tabindex="-1" role="dialog"
+>
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"
+        ><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Image Slideshow</h4>
+      </div>
+      <div class="modal-body">
+        <div
+          id="swp-all-images-carousel" class="carousel slide"
+          data-ride="carousel" data-interval="false"
+        >
+          <!-- Indicators -->
+          <ol class="carousel-indicators">
+            {% for photo in photos %}
+              <li
+                data-target="SWPCarousel"
+                data-slide-to="{{ forloop.counter0 }}"
+                {% if forloop.counter0 == 0 %}
+                  class="active"
+                {% endif %}
+              ></li>
+            {% endfor %}
+          </ol>
+        
+          <!-- Wrapper for slides -->
+          <div class="carousel-inner" role="listbox">
+            {% for photo in photos %}
+              <div
+                class="item {% if forloop.counter0 == 0 %}active{% endif %}"
+              >
+                <img
+                  src="{% static photo.image.image_path %}"
+                  class="swp-carousel-image"
+                  alt="{{ photo.caption }}"
+                />
+                <div class="carousel-caption">
+                  <h3>{{ photo.caption }}</h3>
+                </div>
+              </div>
+            {% endfor %}        
+          </div>
+        
+          <!-- Left and right controls -->
+          <a
+            class="left carousel-control" href="#swp-all-images-carousel"
+            role="button" data-slide="prev"
+          >
+            <span
+              class="glyphicon glyphicon-chevron-left" aria-hidden="true"
+            ></span>
+            <span class="sr-only">Previous</span>
+          </a>
+          <a
+            class="right carousel-control" href="#swp-all-images-carousel"
+            role="button" data-slide="next"
+          >
+            <span
+              class="glyphicon glyphicon-chevron-right" aria-hidden="true"
+            ></span>
+            <span class="sr-only">Next</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
